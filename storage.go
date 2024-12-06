@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
 )
@@ -10,6 +11,7 @@ import (
 type Storage interface {
 	CreateAccount(*Account) error
 	DeleteAccount(int) error
+	GetAccounts() ([]*Account, error)
 	UpdateAccount(*Account) error
 	GetAccountByID(int) (*Account, error)
 	// Get(key string) (string, error)
@@ -21,9 +23,9 @@ type PostgresStorage struct {
 }
 
 // GetAccountByID implements Storage.
-func (s *PostgresStorage) GetAccountByID(int) (*Account, error) {
-	panic("unimplemented")
-}
+// func (s *PostgresStorage) GetAccountByID(int) (*Account, error) {
+// 	panic("unimplemented")
+// }
 
 func NewPostgresStorage() (*PostgresStorage, error) {
 	connStr := "user=postgres dbname=postgres password=newpassword host=localhost port=5433 sslmode=disable"
@@ -58,6 +60,24 @@ func (s *PostgresStorage) CreateAccountTable() error {
 	
 }
 func (s *PostgresStorage) CreateAccount(account *Account) error {
+	query  := `
+	INSERT INTO accounts
+	(first_name, last_name, number, balance,created_at) 
+	VALUES ($1, $2, $3, $4,$5) 
+	`
+	resp, err := s.db.Query(
+		query,
+		account.FirstName,
+		account.LastName,
+		account.Number,
+		account.Balance,
+		account.CreateAt,
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Println("%v\n",resp)
+
 	return nil
 }
 
@@ -69,6 +89,31 @@ func (s *PostgresStorage) DeleteAccount(id int) error {
 	return nil
 }
 
-func (s *PostgresStorage) getAccountByID(id int) (*Account, error) {
+func (s *PostgresStorage) GetAccountByID(id int) (*Account, error) {
 	return nil, nil
+}
+
+
+
+func (s *PostgresStorage) GetAccounts() ([]*Account, error) {
+	rows,err :=  s.db.Query("SELECT * FROM accounts")
+	if err != nil {
+		return nil, err
+	}
+	accounts  := []*Account{}
+	for rows.Next() {
+		account := new(Account)
+		err := rows.Scan(
+			&account.ID, 
+			&account.FirstName,
+			&account.LastName,
+			&account.Number,
+			&account.Balance,
+			&account.CreateAt); 
+		if err != nil{
+			return nil, err
+		}
+		accounts = append(accounts,account)
+	}
+	return accounts, nil
 }

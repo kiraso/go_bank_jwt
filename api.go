@@ -48,7 +48,7 @@ func makeHttpHandler(f apiFunc) http.HandlerFunc {
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/account", makeHttpHandler(s.handleAccount))
-	router.HandleFunc("/account/{id}", makeHttpHandler(s.handleGetAccount))
+	router.HandleFunc("/account/{id}", makeHttpHandler(s.handleGetAccountById))
 	log.Println("Server running on", s.listenAddr)
 	http.ListenAndServe(s.listenAddr,router)
 	//router.HandleFunc("/account"), s.handleGetAccount)
@@ -68,7 +68,16 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 	return fmt.Errorf("Method not allowed")
 }
 
+//
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+	accounts,err := s.store.GetAccounts()
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w,http.StatusOK,accounts)
+}
+
+func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 	fmt.Println(id)
 	//account := NeweAccount("John", "Doe")
