@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
-	"log"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/gorilla/mux"
 )
 
@@ -18,14 +19,17 @@ type apiFunc func(http.ResponseWriter, *http.Request) error
 
 type ApiError struct{
 	Error string
+
 }
 
 type APIServer struct {
 	listenAddr string
+	store Storage
 }
-func NewAPIServer(listenAddr string) *APIServer {
+func NewAPIServer(listenAddr string, store Storage) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddr,
+		store: store,
 	}
 }
 
