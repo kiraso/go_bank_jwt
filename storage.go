@@ -57,7 +57,7 @@ func (s *PostgresStorage) CreateAccountTable() error {
 	return err			
 	
 }
-func (s *PostgresStorage) CreateAccount(*Account) error {
+func (s *PostgresStorage) CreateAccount(account *Account) error {
 	return nil
 }
 
