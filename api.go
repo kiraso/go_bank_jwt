@@ -10,7 +10,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
+	transferReq := new(TransferRequest)
+	if err := json.NewDecoder(r.Body).Decode(transferReq); err != nil {
+		return err 
+	}
+	defer r.Body.Close()
 
+	return WriteJSON(w, http.StatusOK, transferReq)
+}
 func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
 	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
@@ -49,6 +57,7 @@ func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/account", makeHttpHandler(s.handleAccount))
 	router.HandleFunc("/account/{id}", makeHttpHandler(s.handleGetAccountById))
+	router.HandleFunc("/transfer/", makeHttpHandler(s.handleTransfer))
 	log.Println("Server running on", s.listenAddr)
 	http.ListenAndServe(s.listenAddr,router)
 	//router.HandleFunc("/account"), s.handleGetAccount)
