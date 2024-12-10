@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
 	//"go/token"
 	"log"
 	"net/http"
@@ -39,19 +40,57 @@ func createJwt(account *Account) (string, error) {
 	return token.SignedString([]byte(secret))
 	//fmt.Printf("&v &v",ss,err)
 }
-
+func permissionDenied(w http.ResponseWriter) {
+	 WriteJSON(w, http.StatusForbidden,ApiError{Error: "permission denied "})
+}
 // eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBY2NvdW50TnViZXIiOjkyMCwiRXhwaXJlc0F0IjoxNTAwMH0.znqmLJGMHp9bJtmYXl62j4UcHXkN2G08nM6foHIINDc
 
-func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
+func withJWTAuth(handlerFunc http.HandlerFunc, s Storage) http.HandlerFunc {
 	
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("calling JWT auth middleware")
 		tokenString := r.Header.Get("x-jwt-token")
-		_,err := validateJWT(tokenString)
+		token,err := validateJWT(tokenString)
+		
 		if err != nil {
-			WriteJSON(w, http.StatusForbidden,ApiError{Error: "invalid token "})
+			permissionDenied(w)
 			return 
 		}
+		if !token.Valid {
+			permissionDenied(w)
+			return
+		}
+
+		userID,err := getId(r)
+		if err != nil{
+			permissionDenied(w)
+			return 
+		} 
+		claims :=  token.Claims.(jwt.MapClaims)
+		//panic(reflect.TypeOf(claims["accountNumber"]))
+		//panic(claims)
+		//panic("account")
+		account , err := s.GetAccountByID(userID)
+		if err != nil{
+			permissionDenied(w)
+			return 
+		} 
+		if accountNumberFloat, ok := claims["accountNumber"].(float64); ok {
+			if account.Number != int64(accountNumberFloat) {
+				permissionDenied(w)
+				return
+			}
+		}
+		if err != nil {
+			WriteJSON(w, http.StatusForbidden,ApiError{Error:"invalid token"})
+			return 
+		}
+		// claims :=  token.Claims.(jwt.MapClaims)
+		// if claims["ID"] ==  account.ID {
+
+		// }
+
+		// fmt.Println(claims)
 		handlerFunc(w, r)
 	}
 }
@@ -98,8 +137,9 @@ func makeHttpHandler(f apiFunc) http.HandlerFunc {
 
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
+	// s.store
 	router.HandleFunc("/account", makeHttpHandler(s.handleAccount))
-	router.HandleFunc("/account/{id}", withJWTAuth(makeHttpHandler(s.handleGetAccountById)))
+	router.HandleFunc("/account/{id}", withJWTAuth(makeHttpHandler(s.handleGetAccountById),s.store))
 	router.HandleFunc("/transfer/", makeHttpHandler(s.handleTransfer))
 
 	log.Println("Server running on", s.listenAddr)
