@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"go/token"
+	//"go/token"
 	"log"
 	"net/http"
 	"os"
@@ -28,7 +28,20 @@ func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func createJwt(account *Account) (*jwt.JWT, error)
+func createJwt(account *Account) (string, error) {
+	claims := &jwt.MapClaims{
+		"ExpiresAt": 15000,
+		"AccountNuber":account.Number,
+	}
+	secret := os.Getenv("JWT_SECRET")
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
+  // checkov:skip=CKV_SECRET_80: ADD REASON
+	return token.SignedString([]byte(secret))
+	//fmt.Printf("&v &v",ss,err)
+}
+
+// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBY2NvdW50TnViZXIiOjkyMCwiRXhwaXJlc0F0IjoxNTAwMH0.znqmLJGMHp9bJtmYXl62j4UcHXkN2G08nM6foHIINDc
+
 func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +170,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	if err != nil {	
 		return err
 	}
+	fmt.Println("JWT Token:", tokenString)
 	return WriteJSON(w, http.StatusOK, account)
 
 }
