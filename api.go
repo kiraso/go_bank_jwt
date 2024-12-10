@@ -137,7 +137,8 @@ func makeHttpHandler(f apiFunc) http.HandlerFunc {
 
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
-	// s.store
+	// s.store"
+	router.HandleFunc("/login",makeHttpHandler(s.handleLogin))
 	router.HandleFunc("/account", makeHttpHandler(s.handleAccount))
 	router.HandleFunc("/account/{id}", withJWTAuth(makeHttpHandler(s.handleGetAccountById),s.store))
 	router.HandleFunc("/transfer/", makeHttpHandler(s.handleTransfer))
@@ -145,6 +146,17 @@ func (s *APIServer) Run() {
 	log.Println("Server running on", s.listenAddr)
 	http.ListenAndServe(s.listenAddr,router)
 	//router.HandleFunc("/account"), s.handleGetAccount)
+}
+
+func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error{
+	if r.Method != "POST"{
+		return fmt.Errorf("Method not allowed %s",r.Method)
+	}
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil{
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, req) 
 }
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == "GET" {
@@ -198,19 +210,22 @@ func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	createAccountReq := new(createAccountRequest)
-	if err :=  json.NewDecoder(r.Body).Decode(&createAccountReq); err != nil {
+	req := new(createAccountRequest)
+	if err :=  json.NewDecoder(r.Body).Decode(req); err != nil {
 		return err
 	}
-	account :=  NewAccount(createAccountReq.FirstName,createAccountReq.LastName)
+	account,err :=  NewAccount(req.FirstName,req.LastName,req.Password)
+	if err != nil {
+		return err
+	}
 	if err := s.store.CreateAccount(account); err != nil {
 		return err
 	}
-	tokenString,err := createJwt(account)
-	if err != nil {	
-		return err
-	}
-	fmt.Println("JWT Token:", tokenString)
+	// tokenString,err := createJwt(account)
+	// if err != nil {	
+	// 	return err
+	// }
+	//fmt.Println("JWT Token:", tokenString)
 	return WriteJSON(w, http.StatusOK, account)
 
 }
