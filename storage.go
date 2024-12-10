@@ -53,6 +53,7 @@ func (s *PostgresStorage) CreateAccountTable() error {
 		first_name VARCHAR(255) NOT NULL,
 		last_name VARCHAR(255) NOT NULL,
 		number SERIAL NOT NULL,
+		encrypted_password VARCHAR(100) NOT NULL,
 		balance SERIAL NOT NULL,
 		CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP	
 	)`
@@ -63,21 +64,22 @@ func (s *PostgresStorage) CreateAccountTable() error {
 func (s *PostgresStorage) CreateAccount(account *Account) error {
 	query  := `
 	INSERT INTO accounts
-	(first_name, last_name, number, balance,created_at) 
-	VALUES ($1, $2, $3, $4,$5) 
+	(first_name, last_name, number,encrypted_password, balance,created_at) 
+	VALUES ($1, $2, $3, $4,$5, $6) 
 	`
-	resp, err := s.db.Query(
+	_, err := s.db.Query(
 		query,
 		account.FirstName,
 		account.LastName,
 		account.Number,
+		account.EncryptedPassword,
 		account.Balance,
 		account.CreateAt,
 	)
 	if err != nil {
 		return err
 	}
-	fmt.Println("%v\n",resp)
+	//fmt.Println("%v\n",resp)
 
 	return nil
 }

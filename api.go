@@ -147,7 +147,7 @@ func (s *APIServer) Run() {
 	http.ListenAndServe(s.listenAddr,router)
 	//router.HandleFunc("/account"), s.handleGetAccount)
 }
-
+//2384
 func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error{
 	if r.Method != "POST"{
 		return fmt.Errorf("Method not allowed %s",r.Method)
@@ -156,6 +156,20 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error{
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil{
 		return err
 	}
+	acc,err :=  s.store.GetAccountByNumber(int(req.Number))
+	if err != nil{
+		return err
+	}
+
+	fmt.Printf("%+v\n",acc)
+	// if acc.Password != req.Password {
+	// 	return fmt.Errorf("Incorrect password")
+	// }
+	//tokenString,err := createJwt(acc)
+	//if err != nil {
+	//	return err
+	//}
+	//fmt.Println("JWT Token:", tokenString)
 	return WriteJSON(w, http.StatusOK, req) 
 }
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
